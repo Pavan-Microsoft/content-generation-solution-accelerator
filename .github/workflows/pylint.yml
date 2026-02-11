@@ -4,7 +4,6 @@ on:
   push:
     paths:
       - 'content-gen/src/backend/**/*.py'
-      - 'content-gen/src/backend/*.py'
       - 'content-gen/src/backend/requirements*.txt'
       - '.flake8'
       - '.github/workflows/pylint.yml'
