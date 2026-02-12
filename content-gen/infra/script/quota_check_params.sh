@@ -26,19 +26,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Fallback to defaults if not provided
-[[ -z "$MODELS" ]]
-[[ -z "$REGIONS" ]]
-
 echo "Models: $MODELS"
 echo "Regions: $REGIONS"
 echo "Verbose: $VERBOSE"
-
-for arg in "$@"; do
-  if [ "$arg" = "--verbose" ]; then
-    VERBOSE=true
-  fi
-done
 
 log_verbose() {
   if [ "$VERBOSE" = true ]; then
@@ -62,7 +52,7 @@ if [ "$SUB_COUNT" -eq 0 ]; then
     exit 1
 elif [ "$SUB_COUNT" -eq 1 ]; then
     # If only one subscription, automatically select it
-    AZURE_SUBSCRIPTION_ID=$(echo "$SUBSCRIPTIONS" | awk '{print $2}')
+    AZURE_SUBSCRIPTION_ID=$(echo "$SUBSCRIPTIONS" | awk -F '\t' '{print $2}')
     if [ -z "$AZURE_SUBSCRIPTION_ID" ]; then
         echo "❌ ERROR: No active Azure subscriptions found. Please log in using 'az login' and ensure you have an active subscription."
         exit 1
@@ -71,7 +61,7 @@ elif [ "$SUB_COUNT" -eq 1 ]; then
 else
     # If multiple subscriptions exist, prompt the user to choose one
     echo "Multiple subscriptions found:"
-    echo "$SUBSCRIPTIONS" | awk '{print NR")", $1, "-", $2}'
+    echo "$SUBSCRIPTIONS" | awk -F '\t' '{print NR")", $1, "-", $2}'
 
     while true; do
         echo "Enter the number of the subscription to use:"
@@ -79,7 +69,7 @@ else
 
         # Validate user input
         if [[ "$SUB_INDEX" =~ ^[0-9]+$ ]] && [ "$SUB_INDEX" -ge 1 ] && [ "$SUB_INDEX" -le "$SUB_COUNT" ]; then
-            AZURE_SUBSCRIPTION_ID=$(echo "$SUBSCRIPTIONS" | awk -v idx="$SUB_INDEX" 'NR==idx {print $2}')
+            AZURE_SUBSCRIPTION_ID=$(echo "$SUBSCRIPTIONS" | awk -F '\t' -v idx="$SUB_INDEX" 'NR==idx {print $2}')
             echo "✅ Selected Subscription: $AZURE_SUBSCRIPTION_ID"
             break
         else
@@ -156,6 +146,7 @@ for REGION in "${REGIONS[@]}"; do
         continue
     fi
 
+    IMAGE_MODEL_AVAILABLE=false
     AT_LEAST_ONE_MODEL_AVAILABLE=false
     TEMP_TABLE_ROWS=()
 
@@ -199,6 +190,9 @@ for REGION in "${REGIONS[@]}"; do
 
                 if [ "$AVAILABLE" -ge "$REQUIRED_CAPACITY" ]; then
                     FOUND=true
+                    if [ "$MODEL_NAME" = "gpt-image-1" ]; then
+                        IMAGE_MODEL_AVAILABLE=true
+                    fi
                     AT_LEAST_ONE_MODEL_AVAILABLE=true
                     TEMP_TABLE_ROWS+=("$(printf "| %-4s | %-20s | %-43s | %-10s | %-10s | %-10s |" "$INDEX" "$REGION" "$MODEL_TYPE" "$LIMIT" "$CURRENT_VALUE" "$AVAILABLE")")
                 else
@@ -215,8 +209,7 @@ for REGION in "${REGIONS[@]}"; do
         done
     done
 
-    # For content-gen, we only need GPT-5.1, so check if at least one model is available
-    if [ "$AT_LEAST_ONE_MODEL_AVAILABLE" = true ] && [ "$INSUFFICIENT_QUOTA" = false ] && [ "$FOUND" = true ]; then
+if { [ "$IS_USER_PROVIDED_PAIRS" = true ] && [ "$INSUFFICIENT_QUOTA" = false ] && [ "$FOUND" = true ]; } || { [ "$IMAGE_MODEL_AVAILABLE" = true ] && { [ "$APPLY_OR_CONDITION" != true ] || [ "$AT_LEAST_ONE_MODEL_AVAILABLE" = true ]; }; }; then
         VALID_REGIONS+=("$REGION")
         TABLE_ROWS+=("${TEMP_TABLE_ROWS[@]}")
         INDEX=$((INDEX + 1))
