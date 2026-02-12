@@ -40,6 +40,7 @@ jobs:
           args: >
             --verbose --no-progress --exclude ^https?://
             ${{ steps.changed-markdown-files.outputs.all_changed_files }}
+          fail: true
           failIfEmpty: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,6 +54,7 @@ jobs:
           args: >
             --verbose --no-progress --exclude ^https?://
             '**/*.md'
+          fail: true
           failIfEmpty: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
