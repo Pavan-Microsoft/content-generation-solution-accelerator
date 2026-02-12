@@ -191,11 +191,21 @@ jobs:
           WAF_ENABLED: ${{ inputs.WAF_ENABLED }}
         run: |
           if [[ "$WAF_ENABLED" == "true" ]]; then
-            cp infra/main.waf.parameters.json infra/main.parameters.json
-            echo "✅ Successfully copied WAF parameters to main parameters file"
+            echo "🔧 Configuring WAF-enabled deployment (using enablePrivateNetworking, enableMonitoring, etc.)..."
+            echo "Note: Content-gen uses feature flags in azure.yaml instead of separate parameter files"
           else
-            echo "🔧 Configuring Non-WAF deployment - using default main.parameters.json..."
+            echo "🔧 Configuring Non-WAF deployment - using default settings..."
           fi
+
+          # Content-gen uses main.parameters.json with feature flags, no need to copy files
+          cd content-gen
+          if [[ -f "infra/main.parameters.json" ]]; then
+            echo "✅ Using content-gen/infra/main.parameters.json"
+          else
+            echo "❌ ERROR: main.parameters.json not found in content-gen/infra/"
+            exit 1
+          fi
+          cd ..
 
       - name: Install azd
         uses: Azure/setup-azd@v2
@@ -211,6 +221,7 @@ jobs:
       - name: Deploy using azd up and extract values (Linux)
         id: get_output_linux
         shell: bash
+        working-directory: content-gen
         env:
           ENV_NAME: ${{ inputs.ENV_NAME }}
           AZURE_ENV_OPENAI_LOCATION: ${{ inputs.AZURE_ENV_OPENAI_LOCATION }}
@@ -224,25 +235,39 @@ jobs:
         run: |
           set -e
 
+          echo "Working in content-gen directory for deployment..."
+
           echo "Creating environment..."
           azd env new "$ENV_NAME" --no-prompt
           echo "Environment created: $ENV_NAME"
 
           echo "Setting default subscription..."
           azd config set defaults.subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          
-          # Set additional parameters
+
+          # Set required parameters for content-gen
           azd env set AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          azd env set AZURE_ENV_OPENAI_LOCATION="$AZURE_ENV_OPENAI_LOCATION"
+          azd env set azureAiServiceLocation="$AZURE_ENV_OPENAI_LOCATION"
           azd env set AZURE_LOCATION="$AZURE_LOCATION"
           azd env set AZURE_RESOURCE_GROUP="$RESOURCE_GROUP_NAME"
-          azd env set AZURE_ENV_IMAGETAG="$IMAGE_TAG"
-          
+          azd env set imageTag="$IMAGE_TAG"
+
+          # Set WAF feature flags based on WAF_ENABLED input
+          if [[ "${{ inputs.WAF_ENABLED }}" == "true" ]]; then
+            echo "🔧 Setting WAF feature flags..."
+            azd env set enablePrivateNetworking=true
+            azd env set enableMonitoring=true
+            azd env set enableScalability=true
+            echo "✅ WAF features enabled (Private Networking, Monitoring, Scalability)"
+            echo "Note: Redundancy not enabled by default (can be set separately if needed)"
+          else
+            echo "🔧 WAF disabled - using default feature flags"
+          fi
+
           # Set ACR name only when building Docker image
           if [[ "$BUILD_DOCKER_IMAGE" == "true" ]]; then
             # Extract ACR name from login server and set as environment variable
             ACR_NAME="${{ secrets.ACR_TEST_USERNAME }}"
-            azd env set AZURE_ENV_ACR_NAME="$ACR_NAME"
+            azd env set acrName="$ACR_NAME"
             echo "Set ACR name to: $ACR_NAME"
           else
             echo "Skipping ACR name configuration (using existing image)"
@@ -250,24 +275,24 @@ jobs:
 
           if [[ "$EXP" == "true" ]]; then
             echo "✅ EXP ENABLED - Setting EXP parameters..."
-            
+
             # Set EXP variables dynamically
             if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
               EXP_LOG_ANALYTICS_ID="$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID"
             else
               EXP_LOG_ANALYTICS_ID="${{ secrets.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}"
             fi
-            
+
             if [[ -n "$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" ]]; then
               EXP_AI_PROJECT_ID="$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID"
             else
               EXP_AI_PROJECT_ID="${{ secrets.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}"
             fi
-            
-            echo "AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: $EXP_LOG_ANALYTICS_ID"
-            echo "AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: $EXP_AI_PROJECT_ID"
-            azd env set AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID="$EXP_LOG_ANALYTICS_ID"
-            azd env set AZURE_EXISTING_AI_PROJECT_RESOURCE_ID="$EXP_AI_PROJECT_ID"
+
+            echo "existingLogAnalyticsWorkspaceId: $EXP_LOG_ANALYTICS_ID"
+            echo "azureExistingAIProjectResourceId: $EXP_AI_PROJECT_ID"
+            azd env set existingLogAnalyticsWorkspaceId="$EXP_LOG_ANALYTICS_ID"
+            azd env set azureExistingAIProjectResourceId="$EXP_AI_PROJECT_ID"
           else
             echo "❌ EXP DISABLED - Skipping EXP parameters"
             if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]] || [[ -n "$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" ]]; then
@@ -275,72 +300,92 @@ jobs:
             fi
           fi
 
-          # Deploy using azd up
+          # Deploy using azd up (azure.yaml is in content-gen directory)
           azd up --no-prompt
 
           # Get deployment outputs using azd
           echo "Extracting deployment outputs..."
           DEPLOY_OUTPUT=$(azd env get-values --output json)
           echo "Deployment output: $DEPLOY_OUTPUT"
-          
+
           if [[ -z "$DEPLOY_OUTPUT" ]]; then
             echo "Error: Deployment output is empty. Please check the deployment logs."
             exit 1
           fi
 
-          # Extract values from azd output (adjust these based on actual output variable names)
-          AI_FOUNDRY_RESOURCE_ID=$(echo "$DEPLOY_OUTPUT" | jq -r '.AI_FOUNDRY_RESOURCE_ID // empty')
+          # Extract values from azd output for content-gen (adjust variable names)
+          AI_FOUNDRY_RESOURCE_ID=$(echo "$DEPLOY_OUTPUT" | jq -r '.AI_FOUNDRY_RESOURCE_ID // .AI_PROJECT_RESOURCE_ID // empty')
           echo "AI_FOUNDRY_RESOURCE_ID=$AI_FOUNDRY_RESOURCE_ID" >> $GITHUB_ENV
-          
+
           AI_SEARCH_SERVICE_NAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.AI_SEARCH_SERVICE_NAME // empty')
           echo "AI_SEARCH_SERVICE_NAME=$AI_SEARCH_SERVICE_NAME" >> $GITHUB_ENV
-          
-          AZURE_COSMOSDB_ACCOUNT=$(echo "$DEPLOY_OUTPUT" | jq -r '.AZURE_COSMOSDB_ACCOUNT // empty')
+
+          AZURE_COSMOSDB_ACCOUNT=$(echo "$DEPLOY_OUTPUT" | jq -r '.COSMOSDB_ACCOUNT_NAME // empty')
           echo "AZURE_COSMOSDB_ACCOUNT=$AZURE_COSMOSDB_ACCOUNT" >> $GITHUB_ENV
-          
-          STORAGE_ACCOUNT_NAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.STORAGE_ACCOUNT_NAME // empty')
+
+          STORAGE_ACCOUNT_NAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.AZURE_BLOB_ACCOUNT_NAME // empty')
           echo "STORAGE_ACCOUNT_NAME=$STORAGE_ACCOUNT_NAME" >> $GITHUB_ENV
-          
-          STORAGE_CONTAINER_NAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.STORAGE_CONTAINER_NAME // empty')
-          echo "STORAGE_CONTAINER_NAME=$STORAGE_CONTAINER_NAME" >> $GITHUB_ENV
-          
-          KEY_VAULT_NAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.KEY_VAULT_NAME // empty')
-          echo "KEY_VAULT_NAME=$KEY_VAULT_NAME" >> $GITHUB_ENV
-          
+
+          APP_SERVICE_NAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.APP_SERVICE_NAME // empty')
+          echo "APP_SERVICE_NAME=$APP_SERVICE_NAME" >> $GITHUB_ENV
+
           RESOURCE_GROUP_NAME=$(echo "$DEPLOY_OUTPUT" | jq -r '.RESOURCE_GROUP_NAME // empty')
           echo "RESOURCE_GROUP_NAME=$RESOURCE_GROUP_NAME" >> $GITHUB_ENV
-          
+
           WEB_APPURL=$(echo "$DEPLOY_OUTPUT" | jq -r '.WEB_APP_URL // .SERVICE_BACKEND_ENDPOINT_URL // empty')
           echo "WEB_APPURL=$WEB_APPURL" >> $GITHUB_OUTPUT
+
+          ADMIN_API_KEY=$(echo "$DEPLOY_OUTPUT" | jq -r '.ADMIN_API_KEY // empty')
+          echo "ADMIN_API_KEY=$ADMIN_API_KEY" >> $GITHUB_ENV
           sleep 30
 
-      - name: Run Post-Deployment Script
+      - name: Set up Python for post-deployment
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install post-deployment dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f content-gen/scripts/requirements-post-deploy.txt ]; then
+            pip install -r content-gen/scripts/requirements-post-deploy.txt
+          else
+            pip install httpx
+          fi
+
+      - name: Run Post-Deployment Script (Content-Gen)
         id: post_deploy
-        env: 
+        env:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          STORAGE_ACCOUNT_NAME: ${{ env.STORAGE_ACCOUNT_NAME }}
-          STORAGE_CONTAINER_NAME: ${{ env.STORAGE_CONTAINER_NAME }}
-          KEY_VAULT_NAME: ${{ env.KEY_VAULT_NAME }}
-          AZURE_COSMOSDB_ACCOUNT: ${{ env.AZURE_COSMOSDB_ACCOUNT }}
           RESOURCE_GROUP_NAME: ${{ env.RESOURCE_GROUP_NAME }}
+          APP_SERVICE_NAME: ${{ env.APP_SERVICE_NAME }}
+          AZURE_BLOB_ACCOUNT_NAME: ${{ env.STORAGE_ACCOUNT_NAME }}
+          COSMOSDB_ACCOUNT_NAME: ${{ env.AZURE_COSMOSDB_ACCOUNT }}
           AI_SEARCH_SERVICE_NAME: ${{ env.AI_SEARCH_SERVICE_NAME }}
-          AI_FOUNDRY_RESOURCE_ID: ${{ env.AI_FOUNDRY_RESOURCE_ID }}
+          ADMIN_API_KEY: ${{ env.ADMIN_API_KEY }}
         run: |
           set -e
           az account set --subscription "$AZURE_SUBSCRIPTION_ID"
 
-          echo "Running post-deployment script..."
+          echo "Running content-gen post-deployment script..."
+          echo "App Service: $APP_SERVICE_NAME"
+          echo "Storage Account: $AZURE_BLOB_ACCOUNT_NAME"
+          echo "Cosmos DB: $COSMOSDB_ACCOUNT_NAME"
+          echo "AI Search: $AI_SEARCH_SERVICE_NAME"
 
-          bash ./infra/scripts/process_sample_data.sh \
-            "$STORAGE_ACCOUNT_NAME" \
-            "$STORAGE_CONTAINER_NAME" \
-            "$KEY_VAULT_NAME" \
-            "$AZURE_COSMOSDB_ACCOUNT" \
-            "$RESOURCE_GROUP_NAME" \
-            "$AI_SEARCH_SERVICE_NAME" \
-            "$AZURE_CLIENT_ID" \
-            "$AI_FOUNDRY_RESOURCE_ID"
+          # Navigate to content-gen directory and run post_deploy.py
+          cd content-gen
+
+          # Run the Python post-deployment script
+          python scripts/post_deploy.py \
+            --resource-group "$RESOURCE_GROUP_NAME" \
+            --app-name "$APP_SERVICE_NAME" \
+            --storage-account "$AZURE_BLOB_ACCOUNT_NAME" \
+            --cosmos-account "$COSMOSDB_ACCOUNT_NAME" \
+            --search-service "$AI_SEARCH_SERVICE_NAME" \
+            --skip-tests
+
+          echo "Post-deployment script completed successfully!"
 
       - name: Generate Deploy Job Summary
         if: always()

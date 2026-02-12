@@ -4,14 +4,14 @@ on:
     branches:
       - main
     paths:
-      - 'src/frontend/**'
-      - 'src/**/*.py'
-      - 'src/requirements*.txt'
-      - 'src/WebApp.Dockerfile'
-      - '!src/tests/**'
-      - 'infra/**/*.bicep'
-      - 'infra/**/*.json'
-      - '*.yaml'
+      - 'content-gen/src/app/frontend/**'
+      - 'content-gen/src/backend/**/*.py'
+      - 'content-gen/src/backend/requirements*.txt'
+      - 'content-gen/src/app/WebApp.Dockerfile'
+      - '!content-gen/tests/**'
+      - 'content-gen/infra/**/*.bicep'
+      - 'content-gen/infra/**/*.json'
+      - 'content-gen/azure.yaml'
       - '.github/workflows/deploy-*.yml'
   workflow_run:
     workflows: ["Build Docker and Optional Push"]
