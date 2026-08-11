@@ -34,7 +34,7 @@ class BlobStorageService:
         """Return a credential based on the application environment."""
         app_env = os.environ.get("APP_ENV", "prod").lower()
         if app_env == "dev":
-            return DefaultAzureCredential(require_envvar=True)
+            return DefaultAzureCredential()
         return ManagedIdentityCredential(
             client_id=app_settings.base_settings.azure_client_id
         )

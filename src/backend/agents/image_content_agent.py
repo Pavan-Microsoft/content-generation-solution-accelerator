@@ -202,7 +202,7 @@ Style: Modern, clean, minimalist. Brand colors: {brand.primary_color}, {brand.se
         # Get credential
         app_env = os.environ.get("APP_ENV", "prod").lower()
         if app_env == "dev":
-            credential = DefaultAzureCredential(require_envvar=True)
+            credential = DefaultAzureCredential()
         else:
             credential = ManagedIdentityCredential(
                 client_id=app_settings.base_settings.azure_client_id
@@ -324,7 +324,7 @@ MANDATORY FINAL CHECKLIST:
         # Get credential
         app_env = os.environ.get("APP_ENV", "prod").lower()
         if app_env == "dev":
-            credential = DefaultAzureCredential(require_envvar=True)
+            credential = DefaultAzureCredential()
         else:
             credential = ManagedIdentityCredential(
                 client_id=app_settings.base_settings.azure_client_id

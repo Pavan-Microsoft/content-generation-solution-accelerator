@@ -95,7 +95,7 @@ async def test_initialize_with_default_credential():
         service = CosmosDBService()
         await service.initialize()
 
-        mock_cred.assert_called_once_with(require_envvar=True)
+        mock_cred.assert_called_once_with()
 
 
 @pytest.mark.asyncio
