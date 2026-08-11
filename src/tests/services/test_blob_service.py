@@ -17,7 +17,8 @@ from services.blob_service import BlobStorageService, get_blob_service
 @pytest.mark.asyncio
 async def test_initialize_with_managed_identity():
     """Test initialization with managed identity credential."""
-    with patch("services.blob_service.app_settings") as mock_settings, \
+    with patch.dict("os.environ", {"APP_ENV": "prod"}), \
+         patch("services.blob_service.app_settings") as mock_settings, \
          patch("services.blob_service.ManagedIdentityCredential") as mock_cred, \
          patch("services.blob_service.BlobServiceClient") as mock_client:
 
@@ -44,7 +45,8 @@ async def test_initialize_with_managed_identity():
 @pytest.mark.asyncio
 async def test_initialize_with_default_credential():
     """Test initialization with default Azure credential."""
-    with patch("services.blob_service.app_settings") as mock_settings, \
+    with patch.dict("os.environ", {"APP_ENV": "dev"}), \
+         patch("services.blob_service.app_settings") as mock_settings, \
          patch("services.blob_service.DefaultAzureCredential") as mock_cred, \
          patch("services.blob_service.BlobServiceClient") as mock_client:
 
@@ -64,7 +66,7 @@ async def test_initialize_with_default_credential():
         service = BlobStorageService()
         await service.initialize()
 
-        mock_cred.assert_called_once()
+        mock_cred.assert_called_once_with(require_envvar=True)
 
 
 @pytest.mark.asyncio

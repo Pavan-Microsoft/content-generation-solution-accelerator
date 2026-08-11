@@ -5,6 +5,7 @@ to create marketing images using the image generation model.
 """
 
 import logging
+import os
 
 from openai import AsyncAzureOpenAI
 from azure.identity.aio import DefaultAzureCredential, ManagedIdentityCredential
@@ -199,11 +200,13 @@ Style: Modern, clean, minimalist. Brand colors: {brand.primary_color}, {brand.se
 
     try:
         # Get credential
-        client_id = app_settings.base_settings.azure_client_id
-        if client_id:
-            credential = ManagedIdentityCredential(client_id=client_id)
+        app_env = os.environ.get("APP_ENV", "prod").lower()
+        if app_env == "dev":
+            credential = DefaultAzureCredential(require_envvar=True)
         else:
-            credential = DefaultAzureCredential()
+            credential = ManagedIdentityCredential(
+                client_id=app_settings.base_settings.azure_client_id
+            )
 
         # Get token for Azure OpenAI
         token = await credential.get_token("https://cognitiveservices.azure.com/.default")
@@ -319,11 +322,13 @@ MANDATORY FINAL CHECKLIST:
 
     try:
         # Get credential
-        client_id = app_settings.base_settings.azure_client_id
-        if client_id:
-            credential = ManagedIdentityCredential(client_id=client_id)
+        app_env = os.environ.get("APP_ENV", "prod").lower()
+        if app_env == "dev":
+            credential = DefaultAzureCredential(require_envvar=True)
         else:
-            credential = DefaultAzureCredential()
+            credential = ManagedIdentityCredential(
+                client_id=app_settings.base_settings.azure_client_id
+            )
 
         # Get token for Azure OpenAI
         token = await credential.get_token("https://cognitiveservices.azure.com/.default")

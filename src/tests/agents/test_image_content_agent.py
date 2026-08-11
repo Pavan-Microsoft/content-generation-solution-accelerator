@@ -134,7 +134,8 @@ async def test_generate_dalle_image_success():
 @pytest.mark.asyncio
 async def test_generate_dalle_image_with_managed_identity():
     """Test DALL-E generation with managed identity credential."""
-    with patch("agents.image_content_agent.app_settings") as mock_settings, \
+    with patch.dict("os.environ", {"APP_ENV": "prod"}), \
+         patch("agents.image_content_agent.app_settings") as mock_settings, \
          patch("agents.image_content_agent.ManagedIdentityCredential") as mock_cred, \
          patch("agents.image_content_agent.AsyncAzureOpenAI") as mock_client:
 

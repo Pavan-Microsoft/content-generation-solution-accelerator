@@ -9,6 +9,7 @@ Provides async operations for:
 
 import base64
 import logging
+import os
 from typing import Optional, Tuple
 from datetime import datetime, timezone
 
@@ -30,11 +31,13 @@ class BlobStorageService:
         self._generated_images_container: Optional[ContainerClient] = None
 
     async def _get_credential(self):
-        """Get Azure credential for authentication."""
-        client_id = app_settings.base_settings.azure_client_id
-        if client_id:
-            return ManagedIdentityCredential(client_id=client_id)
-        return DefaultAzureCredential()
+        """Return a credential based on the application environment."""
+        app_env = os.environ.get("APP_ENV", "prod").lower()
+        if app_env == "dev":
+            return DefaultAzureCredential(require_envvar=True)
+        return ManagedIdentityCredential(
+            client_id=app_settings.base_settings.azure_client_id
+        )
 
     async def initialize(self) -> None:
         """Initialize Blob Storage client and containers."""
