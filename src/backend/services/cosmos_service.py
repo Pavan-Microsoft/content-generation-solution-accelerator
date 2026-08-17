@@ -8,6 +8,7 @@ Provides async operations for:
 """
 
 import logging
+import os
 from typing import List, Optional
 from datetime import datetime, timezone
 
@@ -29,11 +30,13 @@ class CosmosDBService:
         self._conversations_container: Optional[ContainerProxy] = None
 
     async def _get_credential(self):
-        """Get Azure credential for authentication."""
-        client_id = app_settings.base_settings.azure_client_id
-        if client_id:
-            return ManagedIdentityCredential(client_id=client_id)
-        return DefaultAzureCredential()
+        """Return a credential based on the application environment."""
+        app_env = os.environ.get("APP_ENV", "prod").lower()
+        if app_env == "dev":
+            return DefaultAzureCredential()
+        return ManagedIdentityCredential(
+            client_id=app_settings.base_settings.azure_client_id
+        )
 
     async def initialize(self) -> None:
         """Initialize CosmosDB client and containers."""

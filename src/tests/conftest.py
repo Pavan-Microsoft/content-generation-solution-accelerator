@@ -72,6 +72,9 @@ def mock_environment(monkeypatch):
     environment and changes are automatically reverted after the test.
     """
     env_vars = {
+        # Local authentication; managed-identity tests override this to "prod"
+        "APP_ENV": "dev",
+
         # Azure OpenAI (required - _AzureOpenAISettings)
         "AZURE_OPENAI_ENDPOINT": "https://test-openai.openai.azure.com/",
         "AZURE_ENV_OPENAI_API_VERSION": "2024-08-01-preview",
