@@ -479,7 +479,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.21.0' = if (deploy
         userAssignedIdentity.outputs.resourceId
       ]
     }
-    availabilityZone: contains(zoneSupportedJumpboxLocations, solutionLocation) ? 1 : -1
+    availabilityZone: contains(zoneSupportedJumpboxLocations, solutionLocation) ? -1 : -1
     imageReference: {
       publisher: 'microsoft-dsvm'
       offer: 'dsvm-win-2022'
