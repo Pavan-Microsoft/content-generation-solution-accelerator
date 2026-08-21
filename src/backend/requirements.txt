@@ -1,5 +1,7 @@
 # Content Generation Solution Accelerator - Python Dependencies
 
+--index-url https://packagefeedproxy.microsoft.io/pypi/simple/
+
 # Web Framework
 quart>=0.19.0
 quart-cors>=0.7.0
