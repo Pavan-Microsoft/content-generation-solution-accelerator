@@ -34,6 +34,10 @@
     },
     "postCreateCommand": "bash ./.devcontainer/setup_env.sh",
     "remoteUser": "vscode",
+    "containerEnv": {
+        "PIP_INDEX_URL": "https://packagefeedproxy.microsoft.io/pypi/simple/",
+        "NPM_CONFIG_REGISTRY": "https://packagefeedproxy.microsoft.io/npm/"
+    },
     "hostRequirements": {
         "memory": "4gb"
     }

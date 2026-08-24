@@ -109,14 +109,14 @@ Navigate to the repository root directory and create a Python virtual environmen
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r ./scripts/requirements-post-deploy.txt
+pip install --index-url https://packagefeedproxy.microsoft.io/pypi/simple/ -r ./scripts/requirements-post-deploy.txt
 ```
 
 **For Linux/Mac (bash):**
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r ./scripts/requirements-post-deploy.txt
+pip install --index-url https://packagefeedproxy.microsoft.io/pypi/simple/ -r ./scripts/requirements-post-deploy.txt
 ```
 
 #### 2.3 Execute the Post-Deployment Script

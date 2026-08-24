@@ -278,6 +278,7 @@ function Invoke-Setup {
     
     # Install Python dependencies
     Write-Info "Installing Python dependencies..."
+    $env:PIP_INDEX_URL = "https://packagefeedproxy.microsoft.io/pypi/simple/"
     python -m pip install --upgrade pip | Out-Null
     python -m pip install -r (Join-Path $BackendDir "requirements.txt") | Out-Null
     Write-Success "Python dependencies installed"

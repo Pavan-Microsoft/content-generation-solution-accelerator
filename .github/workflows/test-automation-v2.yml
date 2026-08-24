@@ -24,6 +24,7 @@ env:
     url: ${{ inputs.DOCGEN_URL }}
     accelerator_name: "DocGen"
     test_suite: ${{ inputs.TEST_SUITE }}
+    PIP_INDEX_URL: https://packagefeedproxy.microsoft.io/pypi/simple/
 
 jobs:
   test:
@@ -50,7 +51,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip --index-url https://packagefeedproxy.microsoft.io/pypi/simple/
           pip install -r tests/e2e-test/requirements.txt
 
       - name: Ensure browsers are installed

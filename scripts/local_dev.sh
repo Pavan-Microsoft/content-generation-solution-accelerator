@@ -268,6 +268,7 @@ setup() {
     
     # Install Python dependencies
     print_info "Installing Python dependencies..."
+    export PIP_INDEX_URL="https://packagefeedproxy.microsoft.io/pypi/simple/"
     pip install --upgrade pip > /dev/null
     pip install -r "$BACKEND_DIR/requirements.txt" > /dev/null 2>&1
     print_success "Python dependencies installed"
