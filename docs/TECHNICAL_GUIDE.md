@@ -138,7 +138,7 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed manual deployment instructions
 ```bash
 # Backend
 cd src/backend
-pip install --index-url https://packagefeedproxy.microsoft.io/pypi/simple/ -r requirements.txt
+pip install -r requirements.txt
 python app.py
 
 # Frontend

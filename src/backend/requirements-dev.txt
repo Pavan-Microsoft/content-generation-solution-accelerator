@@ -1,5 +1,7 @@
 # Development Dependencies
 
+--index-url https://packagefeedproxy.microsoft.io/pypi/simple/
+
 -r requirements.txt
 
 # Testing

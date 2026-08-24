@@ -11,8 +11,8 @@ FROM node:20-alpine AS frontend-build
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files (including .npmrc so npm ci routes through the Microsoft Package Feed Proxy)
+COPY package*.json ./.npmrc ./
 
 # Install dependencies
 RUN npm ci
@@ -31,8 +31,8 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Copy server package files
-COPY server/package*.json ./
+# Copy server package files (including .npmrc so npm ci routes through the Microsoft Package Feed Proxy)
+COPY server/package*.json server/.npmrc ./
 
 # Install only production dependencies
 RUN npm ci --only=production
