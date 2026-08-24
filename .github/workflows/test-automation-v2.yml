@@ -24,6 +24,7 @@ env:
     url: ${{ inputs.DOCGEN_URL }}
     accelerator_name: "DocGen"
     test_suite: ${{ inputs.TEST_SUITE }}
+    PIP_INDEX_URL: https://packagefeedproxy.microsoft.io/pypi/simple/
 
 jobs:
   test:

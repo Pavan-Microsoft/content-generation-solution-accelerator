@@ -521,7 +521,8 @@ class ContentGenerationOrchestrator:
                 if not FOUNDRY_AVAILABLE:
                     raise ImportError(
                         "Azure AI Foundry SDK not installed. "
-                        "Install with: pip install azure-ai-projects"
+                        "Install with: python -m pip install --index-url "
+                        "https://packagefeedproxy.microsoft.io/pypi/simple/ azure-ai-projects"
                     )
 
                 project_endpoint = app_settings.ai_foundry.project_endpoint

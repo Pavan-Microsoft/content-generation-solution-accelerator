@@ -50,7 +50,10 @@ except ModuleNotFoundError as exc:
     missing = getattr(exc, "name", "<unknown>")
     print("\nERROR: Missing Python dependency: %s\n" % missing)
     print("Install post-deploy dependencies first, e.g.:")
-    print("  python -m pip install httpx")
+    print(
+        "  python -m pip install --index-url "
+        "https://packagefeedproxy.microsoft.io/pypi/simple/ httpx"
+    )
     sys.exit(2)
 
 

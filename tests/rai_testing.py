@@ -45,7 +45,8 @@ except ImportError:
         def __init__(self, *args, **kwargs) -> None:
             raise RuntimeError(
                 "The 'azure-identity' package is required to use '--use-azure-auth'. "
-                "Install it with 'pip install azure-identity' and try again."
+                "Install it with 'python -m pip install --index-url "
+                "https://packagefeedproxy.microsoft.io/pypi/simple/ azure-identity' and try again."
             )
 
     AzureCliCredential = _MissingAzureIdentityCredential

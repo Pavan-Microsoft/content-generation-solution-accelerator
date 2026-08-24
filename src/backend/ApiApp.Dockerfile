@@ -4,6 +4,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Route all pip installs through the Microsoft Package Feed Proxy (CFS)
+ENV PIP_INDEX_URL=https://packagefeedproxy.microsoft.io/pypi/simple/
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
@@ -11,7 +14,9 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements first for layer caching
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip setuptools wheel \
+    && pip install --no-cache-dir -r requirements.txt \
+    && rm -rf /root/.cache
 
 # Copy application code
 COPY . .

@@ -2,6 +2,8 @@
 #
 # Installs the core application dependencies first, then adds post-deploy-only deps.
 
+--index-url https://packagefeedproxy.microsoft.io/pypi/simple/
+
 -r ../src/backend/requirements.txt
 
 # Post-deploy script deps
