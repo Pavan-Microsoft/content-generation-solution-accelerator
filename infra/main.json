@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.45.6.27763",
-      "templateHash": "7829787750927986140"
+      "version": "0.45.15.27210",
+      "templateHash": "5460208955791249465"
     },
     "name": "Intelligent Content Generation Accelerator",
     "description": "Solution Accelerator for multimodal marketing content generation using Microsoft Agent Framework.\n"
@@ -327,18 +327,6 @@
     "userAssignedIdentityResourceName": "[format('id-{0}', variables('solutionSuffix'))]",
     "deployAdminAccessResources": "[and(parameters('enablePrivateNetworking'), parameters('deployBastionAndJumpbox'))]",
     "bastionHostName": "[format('bas-{0}', variables('solutionSuffix'))]",
-    "zoneSupportedJumpboxLocations": [
-      "australiaeast",
-      "centralus",
-      "eastus",
-      "eastus2",
-      "japaneast",
-      "northeurope",
-      "southeastasia",
-      "swedencentral",
-      "uksouth",
-      "westus3"
-    ],
     "jumpboxUniqueToken": "[take(uniqueString(resourceGroup().id, variables('solutionSuffix')), 10)]",
     "jumpboxVmName": "[take(format('vm-{0}', variables('jumpboxUniqueToken')), 15)]",
     "jumpboxDcrName": "[take(format('dcr-{0}', variables('jumpboxVmName')), 64)]",
@@ -4859,8 +4847,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.45.6.27763",
-              "templateHash": "12763336354304899421"
+              "version": "0.45.15.27210",
+              "templateHash": "15540202608048099016"
             }
           },
           "definitions": {
@@ -8135,8 +8123,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.45.6.27763",
-              "templateHash": "12147106769856360363"
+              "version": "0.45.15.27210",
+              "templateHash": "11097039311066312282"
             }
           },
           "parameters": {
@@ -12456,7 +12444,9 @@
               ]
             }
           },
-          "availabilityZone": "[if(contains(variables('zoneSupportedJumpboxLocations'), variables('solutionLocation')), createObject('value', 1), createObject('value', -1))]",
+          "availabilityZone": {
+            "value": -1
+          },
           "imageReference": {
             "value": {
               "publisher": "microsoft-dsvm",
@@ -29501,8 +29491,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.45.6.27763",
-              "templateHash": "13545973557632951810"
+              "version": "0.45.15.27210",
+              "templateHash": "10643200351523578073"
             }
           },
           "parameters": {
@@ -29639,8 +29629,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.45.6.27763",
-              "templateHash": "16945699569768051557"
+              "version": "0.45.15.27210",
+              "templateHash": "2917852453377472173"
             }
           },
           "parameters": {
@@ -29763,8 +29753,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.45.6.27763",
-              "templateHash": "6358798222636429727"
+              "version": "0.45.15.27210",
+              "templateHash": "1005931790443850649"
             }
           },
           "parameters": {
@@ -46909,8 +46899,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.45.6.27763",
-              "templateHash": "12017817135849598403"
+              "version": "0.45.15.27210",
+              "templateHash": "13934185132818473467"
             }
           },
           "definitions": {
@@ -47948,8 +47938,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "11895150199726048164"
+                      "version": "0.45.15.27210",
+                      "templateHash": "2649412398402624184"
                     },
                     "name": "Site App Settings",
                     "description": "This module deploys a Site App Setting."
@@ -49001,8 +48991,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.45.6.27763",
-              "templateHash": "6984233280324010497"
+              "version": "0.45.15.27210",
+              "templateHash": "6906742305023483823"
             }
           },
           "parameters": {
