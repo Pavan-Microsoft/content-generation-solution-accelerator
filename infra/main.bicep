@@ -419,18 +419,6 @@ module virtualNetwork 'modules/virtualNetwork.bicep' = if (enablePrivateNetworki
 
 // Azure Bastion Host
 var bastionHostName = 'bas-${solutionSuffix}'
-var zoneSupportedJumpboxLocations = [
-  'australiaeast'
-  'centralus'
-  'eastus'
-  'eastus2'
-  'japaneast'
-  'northeurope'
-  'southeastasia'
-  'swedencentral'
-  'uksouth'
-  'westus3'
-]
 module bastionHost 'br/public:avm/res/network/bastion-host:0.8.2' = if (deployAdminAccessResources) {
   name: take('avm.res.network.bastion-host.${bastionHostName}', 64)
   params: {
@@ -479,7 +467,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.21.0' = if (deploy
         userAssignedIdentity.outputs.resourceId
       ]
     }
-    availabilityZone: contains(zoneSupportedJumpboxLocations, solutionLocation) ? 1 : -1
+    availabilityZone: -1 // -1 indicates no specific availability zone (AVM convention)
     imageReference: {
       publisher: 'microsoft-dsvm'
       offer: 'dsvm-win-2022'
