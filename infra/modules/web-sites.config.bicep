@@ -114,3 +114,4 @@ output resourceId string = config.id
 
 @description('The resource group the site config was deployed into.')
 output resourceGroupName string = resourceGroup().name
+

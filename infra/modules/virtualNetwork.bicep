@@ -290,3 +290,4 @@ output bastionSubnetResourceId string = contains(map(vnetSubnets, subnet => subn
 output jumpboxSubnetResourceId string = contains(map(vnetSubnets, subnet => subnet.name), 'jumpbox')
   ? virtualNetwork.outputs.subnetResourceIds[indexOf(map(vnetSubnets, subnet => subnet.name), 'jumpbox')]
   : ''
+
