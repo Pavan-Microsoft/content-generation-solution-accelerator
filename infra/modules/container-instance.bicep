@@ -90,11 +90,13 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2025-09-01'
     ]
     osType: 'Linux'
     restartPolicy: 'Always'
-    subnetIds: isPrivateNetworking ? [
-      {
-        id: subnetResourceId
-      }
-    ] : null
+    subnetIds: isPrivateNetworking
+      ? [
+          {
+            id: subnetResourceId
+          }
+        ]
+      : null
     ipAddress: {
       type: isPrivateNetworking ? 'Private' : 'Public'
       ports: [
@@ -109,12 +111,14 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2025-09-01'
     // the placeholder image is later replaced with the private ACR image, the
     // container group can authenticate to the registry using the user-assigned
     // identity (which holds AcrPull). Unused while running a public image.
-    imageRegistryCredentials: !empty(acrLoginServer) ? [
-      {
-        server: acrLoginServer
-        identity: userAssignedIdentityResourceId
-      }
-    ] : null
+    imageRegistryCredentials: !empty(acrLoginServer)
+      ? [
+          {
+            server: acrLoginServer
+            identity: userAssignedIdentityResourceId
+          }
+        ]
+      : null
   }
 }
 

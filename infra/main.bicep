@@ -139,7 +139,9 @@ param enablePrivateNetworking bool = false
 param enableTelemetry bool = true
 
 @description('Optional. Created by user name.')
-param createdBy string = contains(deployer(), 'userPrincipalName')? split(deployer().userPrincipalName, '@')[0]: deployer().objectId
+param createdBy string = contains(deployer(), 'userPrincipalName')
+  ? split(deployer().userPrincipalName, '@')[0]
+  : deployer().objectId
 
 // ============== //
 // Variables      //
@@ -241,19 +243,21 @@ var imageModelConfig = {
 }
 
 // Image model deployment (optional)
-var imageModelDeployment = imageModelChoice != 'none' ? [
-  {
-    format: 'OpenAI'
-    name: imageModelConfig[imageModelChoice].name
-    model: imageModelConfig[imageModelChoice].name
-    sku: {
-      name: imageModelConfig[imageModelChoice].sku
-      capacity: imageModelCapacity
-    }
-    version: imageModelConfig[imageModelChoice].version
-    raiPolicyName: 'Microsoft.Default'
-  }
-] : []
+var imageModelDeployment = imageModelChoice != 'none'
+  ? [
+      {
+        format: 'OpenAI'
+        name: imageModelConfig[imageModelChoice].name
+        model: imageModelConfig[imageModelChoice].name
+        sku: {
+          name: imageModelConfig[imageModelChoice].sku
+          capacity: imageModelCapacity
+        }
+        version: imageModelConfig[imageModelChoice].version
+        raiPolicyName: 'Microsoft.Default'
+      }
+    ]
+  : []
 
 // Combine deployments based on imageModelChoice
 var aiFoundryAiServicesModelDeployment = concat(baseModelDeployments, imageModelDeployment)
@@ -295,15 +299,11 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableT
 resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
   name: 'default'
   properties: {
-    tags: union(
-      existingTags,
-      tags,
-      {
-        TemplateName: 'ContentGen'
-        Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
-        CreatedBy: createdBy
-      }
-    )
+    tags: union(existingTags, tags, {
+      TemplateName: 'ContentGen'
+      Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
+      CreatedBy: createdBy
+    })
   }
 }
 
@@ -331,13 +331,16 @@ module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0
     publicNetworkAccessForQuery: enablePrivateNetworking ? 'Disabled' : 'Enabled'
   }
 }
-var logAnalyticsWorkspaceResourceId = useExistingLogAnalytics 
-  ? existingLogAnalyticsWorkspaceId 
+var logAnalyticsWorkspaceResourceId = useExistingLogAnalytics
+  ? existingLogAnalyticsWorkspaceId
   : (enableMonitoring ? logAnalyticsWorkspace!.outputs.resourceId : '')
 
-
-var existingLogAnalyticsSubscriptionId = useExistingLogAnalytics ? split(existingLogAnalyticsWorkspaceId, '/')[2] : subscription().subscriptionId
-var existingLogAnalyticsResourceGroupName = useExistingLogAnalytics ? split(existingLogAnalyticsWorkspaceId, '/')[4] : resourceGroup().name
+var existingLogAnalyticsSubscriptionId = useExistingLogAnalytics
+  ? split(existingLogAnalyticsWorkspaceId, '/')[2]
+  : subscription().subscriptionId
+var existingLogAnalyticsResourceGroupName = useExistingLogAnalytics
+  ? split(existingLogAnalyticsWorkspaceId, '/')[4]
+  : resourceGroup().name
 var existingLogAnalyticsWorkspaceName = useExistingLogAnalytics ? split(existingLogAnalyticsWorkspaceId, '/')[8] : ''
 resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' existing = if (useExistingLogAnalytics) {
   name: existingLogAnalyticsWorkspaceName
@@ -389,7 +392,9 @@ module containerRegistry 'modules/container-registry.bicep' = {
     enablePrivateNetworking: enablePrivateNetworking
     enableScalability: enableScalability
     privateEndpointSubnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.pepsSubnetResourceId : ''
-    privateDnsZoneResourceId: enablePrivateNetworking ? avmPrivateDnsZones[dnsZoneIndex.containerRegistry]!.outputs.resourceId : ''
+    privateDnsZoneResourceId: enablePrivateNetworking
+      ? avmPrivateDnsZones[dnsZoneIndex.containerRegistry]!.outputs.resourceId
+      : ''
     managedIdentities: {
       userAssignedResourceIds: [
         userAssignedIdentity.outputs.resourceId
@@ -460,7 +465,9 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.21.0' = if (deploy
     osType: 'Windows'
     vmSize: empty(vmSize) ? 'Standard_D2s_v5' : vmSize
     adminUsername: empty(vmAdminUsername) ? 'JumpboxAdminUser' : vmAdminUsername
-    adminPassword: empty(vmAdminPassword) ? 'Vm!${uniqueString(subscription().subscriptionId, solutionName)}${guid(subscription().subscriptionId, solutionName, 'vm-admin-password')}' : vmAdminPassword
+    adminPassword: empty(vmAdminPassword)
+      ? 'Vm!${uniqueString(subscription().subscriptionId, solutionName)}${guid(subscription().subscriptionId, solutionName, 'vm-admin-password')}'
+      : vmAdminPassword
     managedIdentities: {
       systemAssigned: true // Required by the AADLoginForWindows extension for Entra ID auth
       userAssignedResourceIds: [
@@ -496,13 +503,15 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.21.0' = if (deploy
     encryptionAtHost: false // Some Azure subscriptions do not support encryption at host
     extensionMonitoringAgentConfig: {
       enabled: enableMonitoring
-      dataCollectionRuleAssociations: enableMonitoring ? [
-        {
-          name: 'dcra-${jumpboxVmName}'
-          dataCollectionRuleResourceId: jumpboxDcr!.outputs.resourceId
-          description: 'Associates the Windows security event DCR with the jumpbox VM.'
-        }
-      ] : []
+      dataCollectionRuleAssociations: enableMonitoring
+        ? [
+            {
+              name: 'dcra-${jumpboxVmName}'
+              dataCollectionRuleResourceId: jumpboxDcr!.outputs.resourceId
+              description: 'Associates the Windows security event DCR with the jumpbox VM.'
+            }
+          ]
+        : []
     }
     location: solutionLocation
     tags: tags
@@ -518,7 +527,9 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.21.0' = if (deploy
       settings: { mdmId: '' }
     }
   }
-  dependsOn: (enableMonitoring && !useExistingLogAnalytics) ? [logAnalyticsWorkspace, jumpboxDcr] : (enableMonitoring ? [jumpboxDcr] : [])
+  dependsOn: (enableMonitoring && !useExistingLogAnalytics)
+    ? [logAnalyticsWorkspace, jumpboxDcr]
+    : (enableMonitoring ? [jumpboxDcr] : [])
 }
 
 // ========== Data Collection Rule for Jumpbox Security Event Logs (SFI-AzTBv17) ========== //
@@ -571,8 +582,6 @@ module jumpboxDcr 'br/public:avm/res/insights/data-collection-rule:0.11.0' = if 
   }
 }
 
-
-
 // ========== Private DNS Zones ========== //
 // Only create DNS zones for resources that need private endpoints:
 // - Cognitive Services (for AI Services)
@@ -615,7 +624,7 @@ module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.8.1' = [
 ]
 
 // ========== AI Foundry: AI Services ========== //
-module aiFoundryAiServices 'br/public:avm/res/cognitive-services/account:0.14.2'  = if (!useExistingAiFoundryAiProject) {
+module aiFoundryAiServices 'br/public:avm/res/cognitive-services/account:0.14.2' = if (!useExistingAiFoundryAiProject) {
   name: take('avm.res.cognitive-services.account.${aiFoundryAiServicesResourceName}', 64)
   params: {
     name: aiFoundryAiServicesResourceName
@@ -1063,7 +1072,10 @@ module containerInstance 'modules/container-instance.bicep' = {
       { name: 'AZURE_OPENAI_ENDPOINT', value: 'https://${aiFoundryAiServicesResourceName}.openai.azure.com/' }
       { name: 'AZURE_ENV_GPT_MODEL_NAME', value: gptModelName }
       { name: 'AZURE_ENV_IMAGE_MODEL_NAME', value: imageModelConfig[imageModelChoice].name }
-      { name: 'AZURE_OPENAI_GPT_IMAGE_ENDPOINT', value: imageModelChoice != 'none' ? 'https://${aiFoundryAiServicesResourceName}.openai.azure.com/' : '' }
+      {
+        name: 'AZURE_OPENAI_GPT_IMAGE_ENDPOINT'
+        value: imageModelChoice != 'none' ? 'https://${aiFoundryAiServicesResourceName}.openai.azure.com/' : ''
+      }
       { name: 'AZURE_ENV_OPENAI_API_VERSION', value: azureOpenaiAPIVersion }
       // Azure Cosmos DB Settings
       { name: 'AZURE_COSMOS_ENDPOINT', value: 'https://cosmos-${solutionSuffix}.documents.azure.com:443/' }
@@ -1093,7 +1105,10 @@ module containerInstance 'modules/container-instance.bicep' = {
       { name: 'AZURE_PACKAGE_LOGGING_LEVEL', value: 'WARNING' }
       { name: 'AZURE_LOGGING_PACKAGES', value: '' }
       // Application Insights
-      { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: enableMonitoring ? applicationInsights!.outputs.connectionString : '' }
+      {
+        name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+        value: enableMonitoring ? applicationInsights!.outputs.connectionString : ''
+      }
     ]
   }
 }
@@ -1160,7 +1175,9 @@ output AZURE_ENV_GPT_MODEL_NAME string = gptModelName
 output AZURE_ENV_IMAGE_MODEL_NAME string = imageModelConfig[imageModelChoice].name
 
 @description('Contains Azure OpenAI GPT/Image endpoint URL (empty if no image model selected)')
-output AZURE_OPENAI_GPT_IMAGE_ENDPOINT string = imageModelChoice != 'none' ? 'https://${aiFoundryAiServicesResourceName}.openai.azure.com/' : ''
+output AZURE_OPENAI_GPT_IMAGE_ENDPOINT string = imageModelChoice != 'none'
+  ? 'https://${aiFoundryAiServicesResourceName}.openai.azure.com/'
+  : ''
 
 @description('Contains Azure OpenAI API Version')
 output AZURE_ENV_OPENAI_API_VERSION string = azureOpenaiAPIVersion
@@ -1169,7 +1186,9 @@ output AZURE_ENV_OPENAI_API_VERSION string = azureOpenaiAPIVersion
 output AZURE_OPENAI_RESOURCE string = aiFoundryAiServicesResourceName
 
 @description('Contains Application Insights Connection String')
-output AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING string = (enableMonitoring && !useExistingLogAnalytics) ? applicationInsights!.outputs.connectionString : ''
+output AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING string = (enableMonitoring && !useExistingLogAnalytics)
+  ? applicationInsights!.outputs.connectionString
+  : ''
 
 @description('Contains the location used for AI Services deployment')
 output AZURE_ENV_AI_SERVICE_LOCATION string = azureAiServiceLocation

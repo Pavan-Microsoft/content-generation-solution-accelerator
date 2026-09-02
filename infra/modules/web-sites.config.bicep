@@ -83,13 +83,7 @@ var loggingProperties = enableMonitoring && name == 'logs'
     }
   : {}
 
-var expandedProperties = union(
-  currentAppSettings,
-  properties,
-  azureWebJobsValues,
-  appInsightsValues,
-  loggingProperties
-)
+var expandedProperties = union(currentAppSettings, properties, azureWebJobsValues, appInsightsValues, loggingProperties)
 
 resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!empty(applicationInsightResourceId)) {
   name: last(split(applicationInsightResourceId!, '/'))
