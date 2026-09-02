@@ -110,91 +110,93 @@ var coreSubnets = [
 //   Standard_D2s_v4  (2 vCPU, 8 GiB RAM, Premium SSD)           // Previous gen, also broadly available.
 //   Standard_DS2_v2  (2 vCPU, 7 GiB RAM, Premium SSD)           // Legacy SKU, being retired from some regions - avoid for new deployments.
 // 3 A-series (Av2) is NOT suitable: no Premium SSD support, no accelerated networking.
-var bastionSubnets = deployBastionAndJumpbox ? [
-  {
-    name: 'AzureBastionSubnet'
-    addressPrefixes: ['10.0.10.0/26']
-    networkSecurityGroup: {
-      name: 'nsg-bastion'
-      securityRules: [
-        {
-          name: 'AllowGatewayManager'
-          properties: {
-            access: 'Allow'
-            direction: 'Inbound'
-            priority: 2702
-            protocol: '*'
-            sourcePortRange: '*'
-            destinationPortRange: '443'
-            sourceAddressPrefix: 'GatewayManager'
-            destinationAddressPrefix: '*'
-          }
+var bastionSubnets = deployBastionAndJumpbox
+  ? [
+      {
+        name: 'AzureBastionSubnet'
+        addressPrefixes: ['10.0.10.0/26']
+        networkSecurityGroup: {
+          name: 'nsg-bastion'
+          securityRules: [
+            {
+              name: 'AllowGatewayManager'
+              properties: {
+                access: 'Allow'
+                direction: 'Inbound'
+                priority: 2702
+                protocol: '*'
+                sourcePortRange: '*'
+                destinationPortRange: '443'
+                sourceAddressPrefix: 'GatewayManager'
+                destinationAddressPrefix: '*'
+              }
+            }
+            {
+              name: 'AllowHttpsInBound'
+              properties: {
+                access: 'Allow'
+                direction: 'Inbound'
+                priority: 2703
+                protocol: '*'
+                sourcePortRange: '*'
+                destinationPortRange: '443'
+                sourceAddressPrefix: 'Internet'
+                destinationAddressPrefix: '*'
+              }
+            }
+            {
+              name: 'AllowSshRdpOutbound'
+              properties: {
+                access: 'Allow'
+                direction: 'Outbound'
+                priority: 100
+                protocol: '*'
+                sourcePortRange: '*'
+                destinationPortRanges: ['22', '3389']
+                sourceAddressPrefix: '*'
+                destinationAddressPrefix: 'VirtualNetwork'
+              }
+            }
+            {
+              name: 'AllowAzureCloudOutbound'
+              properties: {
+                access: 'Allow'
+                direction: 'Outbound'
+                priority: 110
+                protocol: 'Tcp'
+                sourcePortRange: '*'
+                destinationPortRange: '443'
+                sourceAddressPrefix: '*'
+                destinationAddressPrefix: 'AzureCloud'
+              }
+            }
+          ]
         }
-        {
-          name: 'AllowHttpsInBound'
-          properties: {
-            access: 'Allow'
-            direction: 'Inbound'
-            priority: 2703
-            protocol: '*'
-            sourcePortRange: '*'
-            destinationPortRange: '443'
-            sourceAddressPrefix: 'Internet'
-            destinationAddressPrefix: '*'
-          }
+      }
+      {
+        name: 'jumpbox'
+        addressPrefixes: ['10.0.12.0/23']
+        networkSecurityGroup: {
+          name: 'nsg-jumpbox'
+          securityRules: [
+            {
+              name: 'AllowRdpFromBastion'
+              properties: {
+                access: 'Allow'
+                direction: 'Inbound'
+                priority: 100
+                protocol: 'Tcp'
+                sourcePortRange: '*'
+                destinationPortRange: '3389'
+                sourceAddressPrefixes: ['10.0.10.0/26']
+                destinationAddressPrefixes: ['10.0.12.0/23']
+              }
+            }
+          ]
         }
-        {
-          name: 'AllowSshRdpOutbound'
-          properties: {
-            access: 'Allow'
-            direction: 'Outbound'
-            priority: 100
-            protocol: '*'
-            sourcePortRange: '*'
-            destinationPortRanges: ['22', '3389']
-            sourceAddressPrefix: '*'
-            destinationAddressPrefix: 'VirtualNetwork'
-          }
-        }
-        {
-          name: 'AllowAzureCloudOutbound'
-          properties: {
-            access: 'Allow'
-            direction: 'Outbound'
-            priority: 110
-            protocol: 'Tcp'
-            sourcePortRange: '*'
-            destinationPortRange: '443'
-            sourceAddressPrefix: '*'
-            destinationAddressPrefix: 'AzureCloud'
-          }
-        }
-      ]
-    }
-  }
-  {
-    name: 'jumpbox'
-    addressPrefixes: ['10.0.12.0/23']
-    networkSecurityGroup: {
-      name: 'nsg-jumpbox'
-      securityRules: [
-        {
-          name: 'AllowRdpFromBastion'
-          properties: {
-            access: 'Allow'
-            direction: 'Inbound'
-            priority: 100
-            protocol: 'Tcp'
-            sourcePortRange: '*'
-            destinationPortRange: '3389'
-            sourceAddressPrefixes: ['10.0.10.0/26']
-            destinationAddressPrefixes: ['10.0.12.0/23']
-          }
-        }
-      ]
-    }
-  }
-] : []
+      }
+    ]
+  : []
 
 var vnetSubnets = concat(coreSubnets, bastionSubnets)
 
@@ -242,24 +244,26 @@ module virtualNetwork 'br/public:avm/res/network/virtual-network:0.8.0' = {
         delegation: subnet.?delegation
       }
     ]
-    diagnosticSettings: !empty(logAnalyticsWorkspaceId) ? [
-      {
-        name: 'vnetDiagnostics'
-        workspaceResourceId: logAnalyticsWorkspaceId
-        logCategoriesAndGroups: [
+    diagnosticSettings: !empty(logAnalyticsWorkspaceId)
+      ? [
           {
-            categoryGroup: 'allLogs'
-            enabled: true
+            name: 'vnetDiagnostics'
+            workspaceResourceId: logAnalyticsWorkspaceId
+            logCategoriesAndGroups: [
+              {
+                categoryGroup: 'allLogs'
+                enabled: true
+              }
+            ]
+            metricCategories: [
+              {
+                category: 'AllMetrics'
+                enabled: true
+              }
+            ]
           }
         ]
-        metricCategories: [
-          {
-            category: 'AllMetrics'
-            enabled: true
-          }
-        ]
-      }
-    ] : []
+      : []
     tags: tags
     enableTelemetry: enableTelemetry
   }
@@ -269,10 +273,21 @@ output name string = virtualNetwork.outputs.name
 output resourceId string = virtualNetwork.outputs.resourceId
 
 // Core subnet outputs (always present)
-output webSubnetResourceId string = contains(map(vnetSubnets, subnet => subnet.name), 'web') ? virtualNetwork.outputs.subnetResourceIds[indexOf(map(vnetSubnets, subnet => subnet.name), 'web')] : ''
-output pepsSubnetResourceId string = contains(map(vnetSubnets, subnet => subnet.name), 'peps') ? virtualNetwork.outputs.subnetResourceIds[indexOf(map(vnetSubnets, subnet => subnet.name), 'peps')] : ''
-output aciSubnetResourceId string = contains(map(vnetSubnets, subnet => subnet.name), 'aci') ? virtualNetwork.outputs.subnetResourceIds[indexOf(map(vnetSubnets, subnet => subnet.name), 'aci')] : ''
+output webSubnetResourceId string = contains(map(vnetSubnets, subnet => subnet.name), 'web')
+  ? virtualNetwork.outputs.subnetResourceIds[indexOf(map(vnetSubnets, subnet => subnet.name), 'web')]
+  : ''
+output pepsSubnetResourceId string = contains(map(vnetSubnets, subnet => subnet.name), 'peps')
+  ? virtualNetwork.outputs.subnetResourceIds[indexOf(map(vnetSubnets, subnet => subnet.name), 'peps')]
+  : ''
+output aciSubnetResourceId string = contains(map(vnetSubnets, subnet => subnet.name), 'aci')
+  ? virtualNetwork.outputs.subnetResourceIds[indexOf(map(vnetSubnets, subnet => subnet.name), 'aci')]
+  : ''
 
 // Bastion/jumpbox subnet outputs (always declared; will be empty when those subnets are not deployed)
-output bastionSubnetResourceId string = contains(map(vnetSubnets, subnet => subnet.name), 'AzureBastionSubnet') ? virtualNetwork.outputs.subnetResourceIds[indexOf(map(vnetSubnets, subnet => subnet.name), 'AzureBastionSubnet')] : ''
-output jumpboxSubnetResourceId string = contains(map(vnetSubnets, subnet => subnet.name), 'jumpbox') ? virtualNetwork.outputs.subnetResourceIds[indexOf(map(vnetSubnets, subnet => subnet.name), 'jumpbox')] : ''
+output bastionSubnetResourceId string = contains(map(vnetSubnets, subnet => subnet.name), 'AzureBastionSubnet')
+  ? virtualNetwork.outputs.subnetResourceIds[indexOf(map(vnetSubnets, subnet => subnet.name), 'AzureBastionSubnet')]
+  : ''
+output jumpboxSubnetResourceId string = contains(map(vnetSubnets, subnet => subnet.name), 'jumpbox')
+  ? virtualNetwork.outputs.subnetResourceIds[indexOf(map(vnetSubnets, subnet => subnet.name), 'jumpbox')]
+  : ''
+

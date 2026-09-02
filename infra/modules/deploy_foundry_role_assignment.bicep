@@ -82,3 +82,4 @@ output aiServicesEndpoint string = existingAiServices.properties.endpoint
 
 @description('The principal ID of the existing AI Project (if provided).')
 output aiProjectPrincipalId string = !empty(aiProjectName) ? existingAiProject.?identity.?principalId ?? '' : ''
+
